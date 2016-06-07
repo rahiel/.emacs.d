@@ -1,0 +1,799 @@
+#+TITLE: Emacs Config
+
+
+* general
+** initialize packages
+#+begin_src emacs-lisp
+  (setq load-prefer-newer t)
+  (require 'package)
+  (add-to-list 'package-archives
+               '("melpa" . "https://melpa.org/packages/"))
+  (package-initialize)
+
+  (unless (package-installed-p 'use-package)
+    (package-refresh-contents)
+    (package-install 'use-package))
+  (require 'use-package)
+  (setq use-package-always-ensure t)
+#+end_src
+** utils
+Elisp function used within config.
+#+BEGIN_SRC emacs-lisp
+  (defun add-hook-modes (func mode-hooks)
+    "Add func as hook on multiple modes."
+    (mapc (lambda (mode-hook) (add-hook mode-hook func))
+          mode-hooks))
+#+END_SRC
+** simple keybindings
+#+begin_src emacs-lisp
+  (global-set-key (kbd "C-z") 'repeat)
+  (global-set-key (kbd "C-x C-b") 'ibuffer)
+  (global-set-key (kbd "C-x C-k") (lambda () (interactive) (kill-buffer)))
+  (global-set-key (kbd "C-c j") 'just-one-space)
+  (global-set-key [f1] 'shell)
+  (global-set-key (kbd "C-s") 'isearch-forward)
+  (global-set-key (kbd "C-M-s") 'isearch-forward-regexp)
+  (global-set-key (kbd "C-r") 'isearch-backward)
+  (global-set-key (kbd "C-M-r") 'isearch-backward-regexp)
+  (global-set-key "\M-9" 'backward-sexp)
+  (global-set-key "\M-0" 'forward-sexp)
+  (global-set-key "\M-1" 'delete-other-windows)
+  (global-set-key (kbd "M-n") 'next-error)
+  (global-set-key (kbd "M-p") 'previous-error)
+#+end_src
+** quick moving
+From: http://whattheemacsd.com/key-bindings.el-02.html
+#+BEGIN_SRC emacs-lisp
+  (global-set-key (kbd "C-S-n")
+                  (lambda ()
+                    (interactive)
+                    (ignore-errors (next-line 5))))
+
+  (global-set-key (kbd "C-S-p")
+                  (lambda ()
+                    (interactive)
+                    (ignore-errors (previous-line 5))))
+
+  (global-set-key (kbd "C-S-f")
+                  (lambda ()
+                    (interactive)
+                    (ignore-errors (forward-char 5))))
+
+  (global-set-key (kbd "C-S-b")
+                  (lambda ()
+                    (interactive)
+                    (ignore-errors (backward-char 5))))
+#+END_SRC
+** toggle GUI bars
+#+begin_src emacs-lisp
+  (defun toggle-bars ()
+    (interactive)
+    (if menu-bar-mode (menu-bar-mode 0) (menu-bar-mode))
+    (if tool-bar-mode (tool-bar-mode 0) (tool-bar-mode))
+    (if scroll-bar-mode (scroll-bar-mode 0) (scroll-bar-mode)))
+  (global-set-key [f12] 'toggle-bars)
+  (toggle-bars)
+#+end_src
+** hippie-expand
+From https://tuhdo.github.io/emacs-tutor3.html#sec-4-5
+#+BEGIN_SRC emacs-lisp
+  (global-set-key (kbd "M-/") 'hippie-expand) ;; replace dabbrev-expand
+  (setq
+   hippie-expand-try-functions-list
+   '(try-expand-dabbrev ;; Try to expand word "dynamically", searching the current buffer.
+     try-expand-dabbrev-all-buffers ;; Try to expand word "dynamically", searching all other buffers.
+     try-expand-dabbrev-from-kill ;; Try to expand word "dynamically", searching the kill ring.
+     try-complete-file-name-partially ;; Try to complete text as a file name, as many characters as unique.
+     try-complete-file-name ;; Try to complete text as a file name.
+     try-expand-all-abbrevs ;; Try to expand word before point according to all abbrev tables.
+     try-expand-list ;; Try to complete the current line to an entire line in the buffer.
+     try-expand-line ;; Try to complete the current line to an entire line in the buffer.
+     try-complete-lisp-symbol-partially ;; Try to complete as an Emacs Lisp symbol, as many characters as unique.
+     try-complete-lisp-symbol) ;; Try to complete word as an Emacs Lisp symbol.
+   )
+#+END_SRC
+** Window move bindings
+Move focus to window with shift-{left,right,up,down}
+#+begin_src emacs-lisp
+  (when (fboundp 'windmove-default-keybindings)
+    (windmove-default-keybindings))
+#+end_src
+
+** which-key
+#+BEGIN_SRC emacs-lisp
+  (use-package which-key
+    :diminish which-key-mode)
+  (which-key-mode t)
+#+END_SRC
+** undo window changes
+Undo / redo changes in window configuration with =C-c left= and =C-c right=.
+ #+BEGIN_SRC emacs-lisp
+    (winner-mode 1)
+ #+END_SRC
+** backup files
+Put backup files in seperate directory.
+#+begin_src emacs-lisp
+  (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+#+end_src
+
+** kill buffer in other window
+From http://stackoverflow.com/a/7261072
+#+begin_src emacs-lisp
+  (defun other-window-kill-buffer ()
+    "Kill the buffer in the other window"
+    (interactive)
+    ;; Window selection is used because point goes to a different window
+    ;; if more than 2 windows are present
+    (let ((win-curr (selected-window))
+                  (win-other (next-window)))
+          (select-window win-other)
+          (kill-this-buffer)
+          (select-window win-curr)))
+  (global-set-key (kbd "C-x K") 'other-window-kill-buffer)
+#+end_src
+
+** better upcase/downcase-word
+from: http://oremacs.com/2014/12/23/upcase-word-you-silly/
+#+BEGIN_SRC emacs-lisp
+  (defadvice upcase-word (before upcase-word-advice activate)
+    (unless (looking-back "\\b")
+      (backward-word)))
+
+  (defadvice downcase-word (before downcase-word-advice activate)
+    (unless (looking-back "\\b")
+      (backward-word)))
+
+  (defadvice capitalize-word (before capitalize-word-advice activate)
+    (unless (looking-back "\\b")
+      (backward-word)))
+#+END_SRC
+** parens / paired delimiters
+#+begin_src emacs-lisp
+  (show-paren-mode t)
+  (electric-pair-mode t)
+#+end_src
+** move beginning of line
+from http://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-beginning-of-a-line/
+#+begin_src emacs-lisp
+  (defun smarter-move-beginning-of-line (arg)
+    "Move point back to indentation of beginning of line.
+
+  Move point to the first non-whitespace character on this line.
+  If point is already there, move to the beginning of the line.
+  Effectively toggle between the first non-whitespace character and
+  the beginning of the line.
+
+  If ARG is not nil or 1, move forward ARG - 1 lines first.  If
+  point reaches the beginning or end of the buffer, stop there."
+    (interactive "^p")
+    (setq arg (or arg 1))
+
+    ;; Move lines first
+    (when (/= arg 1)
+      (let ((line-move-visual nil))
+        (forward-line (1- arg))))
+
+    (let ((orig-point (point)))
+      (back-to-indentation)
+      (when (= orig-point (point))
+        (move-beginning-of-line 1))))
+
+  ;; remap C-a to `smarter-move-beginning-of-line'
+  (global-set-key [remap move-beginning-of-line]
+                  'smarter-move-beginning-of-line)
+#+end_src
+** smart kill region
+From prelude: https://github.com/bbatsov/prelude/blob/5b0c51d0edcaaf19b7bbf4335cab1a500c6cfa3f/core/prelude-editor.el#L197
+#+BEGIN_SRC emacs-lisp
+  (require 'rect)
+  (defadvice kill-region (before smart-cut activate compile)
+    "When called interactively with no active region, kill a single line instead."
+    (interactive
+     (if mark-active (list (region-beginning) (region-end) rectangle-mark-mode)
+       (list (line-beginning-position)
+             (line-beginning-position 2)))))
+#+END_SRC
+** smart kill whole line
+From: http://emacsredux.com/blog/2013/04/09/kill-whole-line/
+#+BEGIN_SRC emacs-lisp
+  (defun smart-kill-whole-line (&optional arg)
+    "A simple wrapper around `kill-whole-line' that respects indentation."
+    (interactive "P")
+    (kill-whole-line arg)
+    (back-to-indentation))
+
+  (global-set-key [remap kill-whole-line] 'smart-kill-whole-line)
+#+END_SRC
+** copy line
+Copy whole line if nothing is marked.
+#+BEGIN_SRC emacs-lisp
+  (use-package easy-kill
+    :init (global-set-key [remap kill-ring-save] 'easy-kill))
+#+END_SRC
+** avy
+#+BEGIN_SRC emacs-lisp
+  (use-package avy
+    :bind
+    ("C-0" . avy-goto-char)
+    ("C-'" . avy-goto-char-2)
+    ("M-g g" . avy-goto-line))
+#+END_SRC
+** window management
+#+BEGIN_SRC emacs-lisp
+  (use-package ace-window
+    :bind
+    ("M-o" . ace-window)
+    ("C-x C-o" . ace-swap-window)
+    :config (setq aw-scope 'frame))
+#+END_SRC
+** anzu
+Match count info for search modes.
+#+BEGIN_SRC emacs-lisp
+  (use-package anzu
+    :init (global-anzu-mode +1)
+    :bind
+    ("M-%" . anzu-query-replace)
+    ("M-S-%" . anzu-query-replace-regexp)
+    ("C-c r" . anzu-query-replace-at-cursor-thing)
+    :diminish anzu-mode)
+#+END_SRC
+** swiper
+#+BEGIN_SRC emacs-lisp
+  (use-package swiper
+    :bind ("C-S-s" . swiper))
+#+END_SRC
+** sentences end with single space
+#+BEGIN_SRC emacs-lisp
+  (setq sentence-end-double-space nil)
+#+END_SRC
+** save position between sessions
+#+BEGIN_SRC emacs-lisp
+  (require 'saveplace)
+  (setq-default save-place t)
+  (setq save-place-file (expand-file-name ".places" user-emacs-directory))
+#+END_SRC
+
+** auto revert mode
+Automatically reload buffer when file changes on disk.
+#+BEGIN_SRC emacs-lisp
+  (global-auto-revert-mode t)
+#+END_SRC
+** deft notes
+#+BEGIN_SRC emacs-lisp
+  (use-package deft
+    :config
+    (setq deft-directory "~/Sync/Notes/")
+    (setq deft-extensions '("org" "md" "txt"))
+    (setq deft-use-filename-as-title t)
+    (setq deft-current-sort-method 'title)
+    :bind ("<f8>" . deft))
+#+END_SRC
+** recent files
+#+BEGIN_SRC emacs-lisp
+  (require 'recentf)
+  (recentf-mode t)
+  (setq recentf-max-saved-items 500)
+#+END_SRC
+** highlight current line
+#+BEGIN_SRC emacs-lisp
+  (global-hl-line-mode 1)
+#+END_SRC
+** nyan-mode
+#+BEGIN_SRC emacs-lisp
+  (use-package nyan-mode
+    :init (nyan-mode t))
+#+END_SRC
+** scrolling
+#+BEGIN_SRC emacs-lisp
+  (setq scroll-conservatively 101
+        scroll-preserve-screen-position 1)
+#+END_SRC
+** frame title
+#+BEGIN_SRC emacs-lisp
+  (setq frame-title-format
+        '("" (:eval (if (buffer-file-name)
+                        (abbreviate-file-name (buffer-file-name))
+                      "%b"))))
+#+END_SRC
+** yes or no
+#+begin_src emacs-lisp
+  (defalias 'yes-or-no-p 'y-or-n-p)
+#+end_src
+** whitespace
+#+BEGIN_SRC emacs-lisp
+  (use-package ws-butler
+    :init (add-hook 'prog-mode-hook 'ws-butler-mode))
+#+END_SRC
+** final newline
+#+BEGIN_SRC emacs-lisp
+  (setq require-final-newline t)
+#+END_SRC
+** subword mode
+Treat CamelCase as two subwords.
+#+BEGIN_SRC emacs-lisp
+  (use-package subword
+    :init (global-subword-mode t)
+    :diminish subword-mode)
+#+END_SRC
+** delete file and buffer
+from: https://rejeep.github.io/emacs/elisp/2010/11/16/delete-file-and-buffer-in-emacs.html
+#+BEGIN_SRC emacs-lisp
+  (defun delete-this-buffer-and-file ()
+    "Removes file connected to current buffer and kills buffer."
+    (interactive)
+    (let ((filename (buffer-file-name))
+          (buffer (current-buffer))
+          (name (buffer-name)))
+      (if (not (and filename (file-exists-p filename)))
+          (error "Buffer '%s' is not visiting a file!" name)
+        (when (yes-or-no-p "Are you sure you want to remove this file? ")
+          (delete-file filename)
+          (kill-buffer buffer)
+          (message "File '%s' successfully removed" filename)))))
+#+END_SRC
+** timestamps
+#+BEGIN_SRC emacs-lisp
+  (defun insert-timestamp ()
+    (interactive)
+    (insert (format-time-string "%a %2d %b %Y %02H:%02M")))
+
+  (defun insert-date ()
+    (interactive)
+    (insert (format-time-string "%2d %b %Y")))
+#+END_SRC
+** expand region
+#+BEGIN_SRC emacs-lisp
+  (use-package expand-region
+    :bind ("C-=" . er/expand-region))
+#+END_SRC
+** math input mode
+#+BEGIN_SRC emacs-lisp
+  (use-package xah-math-input)
+#+END_SRC
+** eval and replace anywhere
+from https://emacs.wordpress.com/2007/01/17/eval-and-replace-anywhere/
+#+begin_src emacs-lisp
+  (defun fc-eval-and-replace ()
+    "Replace the preceding sexp with its value."
+    (interactive)
+    (backward-kill-sexp)
+    (condition-case nil
+        (prin1 (eval (read (current-kill 0)))
+               (current-buffer))
+      (error (message "Invalid expression")
+             (insert (current-kill 0)))))
+  (global-set-key (kbd "C-c e") 'fc-eval-and-replace)
+#+end_src
+
+** modeline
+show the time in the modeline.
+#+begin_src emacs-lisp
+  (setq display-time-24hr-format t)
+  (setq display-time-mail-string "")
+  (display-time-mode 1)
+#+end_src
+
+** markdown
+#+begin_src emacs-lisp
+  (add-to-list 'auto-mode-alist '("\\.md\\'" . gfm-mode))
+  (setq markdown-command "pandoc")
+  (use-package markdown-toc)
+#+end_src
+
+** auto text filling
+#+begin_src emacs-lisp
+  (setq-default fill-column 80)
+  (add-hook-modes 'auto-fill-mode '(text-mode-hook org-mode-hook latex-mode))
+#+end_src
+
+** spelling
+Check for spelling only in writing modes.
+#+begin_src emacs-lisp
+  (add-hook-modes 'flyspell-mode '(text-mode-hook org-mode-hook latex-mode))
+#+end_src
+
+** writegood
+Write better.
+#+BEGIN_SRC emacs-lisp
+  (use-package writegood-mode)
+  (add-hook-modes 'writegood-mode '(text-mode-hook org-mode-hook latex-mode))
+#+END_SRC
+** define-word
+#+BEGIN_SRC emacs-lisp
+  (use-package define-word
+    :bind
+    ("C-c d" . define-word-at-point)
+    ("C-c D" . define-word))
+#+END_SRC
+** theme
+#+begin_src emacs-lisp
+  ;(use-package solarized-theme)
+  ;(use-package monokai-theme)
+  (load-theme 'solarized-dark t)
+#+end_src
+** diminish
+Hide minor modes from mode line.
+#+BEGIN_SRC emacs-lisp
+  (require 'diminish)
+  (eval-after-load "auto-fill" '(diminish 'auto-fill-mode))
+  (eval-after-load "flyspell" '(diminish 'flyspell-mode))
+  (eval-after-load "subword" '(diminish 'subword-mode))
+#+END_SRC
+
+** smaller major mode names
+from: http://whattheemacsd.com/appearance.el-01.html
+#+BEGIN_SRC emacs-lisp
+  (defmacro rename-modeline (package-name mode new-name)
+    `(eval-after-load ,package-name
+       '(defadvice ,mode (after rename-modeline activate)
+          (setq mode-name ,new-name))))
+
+  (rename-modeline "js2-mode" js2-mode "JS2")
+#+END_SRC
+
+** launchers
+Launch external programs
+#+BEGIN_SRC emacs-lisp
+  (defun launch-terminal ()
+      (interactive)
+      (shell-command
+       (concat "xfce4-terminal --default-working-directory='" (helm-current-directory) "'")))
+  (global-set-key [f2] 'launch-terminal)
+#+END_SRC
+* Helm
+With suggestions from: https://tuhdo.github.io/helm-intro.html
+#+BEGIN_SRC emacs-lisp
+  (use-package helm
+    :init
+    (require 'helm)
+    (require 'helm-config)
+    (helm-mode 1)
+    :config
+    (global-set-key (kbd "C-c h") 'helm-command-prefix)
+    (global-unset-key (kbd "C-x c"))
+    (setq helm-M-x-fuzzy-match t
+          helm-buffers-fuzzy-matching t
+          helm-recentf-fuzzy-match t)
+    :bind
+    ("M-x" . helm-M-x)
+    ("M-y" . helm-show-kill-ring)
+    ("C-x C-r" . helm-recentf)
+    ("C-x C-b" . helm-mini)
+    ("C-x b" . helm-mini)
+    ("C-x C-g" . helm-do-grep)
+    ("C-h a" . helm-apropos)
+    ("C-x C-f" . helm-find-files)
+    ("C-c i" . helm-semantic-or-imenu)
+    ("C-c o" . helm-occur)
+    ("C-c h o" . helm-occur)
+    :bind
+    (:map helm-map
+          ("<tab>" . helm-execute-persistent-action) ; rebind tab to run persistent action
+          ("C-i" . helm-execute-persistent-action) ; make TAB works in terminal
+          ("C-z" . helm-select-action)) ; list actions using C-z
+    :bind
+    (:map helm-command-map
+          ("w" . helm-wikipedia-suggest)
+          ("g" . helm-google-suggest))
+    :diminish helm-mode)
+#+END_SRC
+* programming
+** fill column indicator
+#+begin_src emacs-lisp
+  (use-package fill-column-indicator
+    :init
+    (add-hook 'prog-mode-hook
+              (lambda ()
+                (fci-mode 1)
+                (setq fci-rule-column 80))))
+#+end_src
+
+** indent with spaces
+#+begin_src emacs-lisp
+  (setq-default indent-tabs-mode nil)
+#+end_src
+
+** prettify symbols
+#+begin_src emacs-lisp
+  (global-prettify-symbols-mode t)
+  (add-hook 'prog-mode-hook
+            (lambda ()
+              (setq prettify-symbols-alist
+                    '(("lambda" . ?λ)
+                      ("<=" . ?≤) (">=" . ?≥)))))
+#+end_src
+
+** magit
+#+BEGIN_SRC emacs-lisp
+  (use-package magit
+    :bind ("C-c m" . magit-status))
+#+END_SRC
+** rainbow delimiters
+Colour delimiters according to their depth.
+#+begin_src emacs-lisp
+  (use-package rainbow-delimiters
+    :init (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
+#+end_src
+** rainbow-mode
+Colourize colour names in buffers.
+#+BEGIN_SRC emacs-lisp
+  (use-package rainbow-mode
+    :init
+    (add-hook 'html-mode-hook 'rainbow-mode)
+    (add-hook 'css-mode-hook 'rainbow-mode))
+#+END_SRC
+** flycheck
+Check for syntax errors on the fly.
+#+BEGIN_SRC emacs-lisp
+  (use-package flycheck
+    :init (add-hook 'after-init-hook #'global-flycheck-mode))
+#+END_SRC
+** projectile
+#+BEGIN_SRC emacs-lisp
+  (use-package projectile
+    :init (projectile-global-mode))
+
+  (use-package helm-projectile
+    :init (helm-projectile-on)
+    :config (setq projectile-completion-system 'helm))
+#+END_SRC
+** company-mode
+#+BEGIN_SRC emacs-lisp
+  (use-package company
+    :init (global-company-mode 1)
+    :bind ("C-." . company-complete)
+    :bind
+    (:map company-active-map
+          ("C-n" . company-select-next)
+          ("C-p" . company-select-previous)
+          ("C-d" . company-show-doc-buffer)
+          ("<tab>" . company-complete))
+    :config
+    (setq company-idle-delay 0.2)
+    (setq company-tooltip-align-annotations t)
+    :diminish company-mode)
+
+  (use-package company-quickhelp
+    :init (company-quickhelp-mode 1)
+    :config
+    (setq company-quickhelp-delay 0.3)
+    :bind (:map company-quickhelp-mode-map
+                ("M-h" . nil)))
+#+END_SRC
+** commenting
+#+BEGIN_SRC emacs-lisp
+  (use-package comment-dwim-2
+    :bind ("M-;" . comment-dwim-2))
+#+END_SRC
+
+** yasnippet
+#+BEGIN_SRC emacs-lisp
+  (use-package yasnippet)
+  (require 'yasnippet)
+  (yas-global-mode 1)
+#+END_SRC
+** shell-pop
+#+BEGIN_SRC emacs-lisp
+  (use-package shell-pop
+    :bind ("M-s" . shell-pop))
+#+END_SRC
+** toml-mode
+#+BEGIN_SRC emacs-lisp
+  (use-package toml-mode)
+#+END_SRC
+** nginx-mode
+#+BEGIN_SRC emacs-lisp
+  (use-package nginx-mode)
+  (require 'nginx-mode)
+#+END_SRC
+** paredit
+from http://www.emacswiki.org/emacs/ParEdit
+#+BEGIN_SRC emacs-lisp
+  (use-package paredit
+    :init
+    (autoload 'enable-paredit-mode "paredit" "Turn on pseudo-structural editing of Lisp code." t)
+    (add-hook 'emacs-lisp-mode-hook       #'enable-paredit-mode)
+    (add-hook 'eval-expression-minibuffer-setup-hook #'enable-paredit-mode)
+    (add-hook 'ielm-mode-hook             #'enable-paredit-mode)
+    (add-hook 'lisp-mode-hook             #'enable-paredit-mode)
+    (add-hook 'lisp-interaction-mode-hook #'enable-paredit-mode)
+    (add-hook 'scheme-mode-hook           #'enable-paredit-mode))
+#+END_SRC
+** highlight TODO's
+from: http://emacs-fu.blogspot.kr/2008/12/highlighting-todo-fixme-and-friends.html
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'prog-mode-hook
+                 (lambda ()
+                  (font-lock-add-keywords nil
+                   '(("\\<\\(FIXME\\|TODO\\|BUG\\):" 1 font-lock-warning-face t)))))
+#+END_SRC
+** web-mode
+#+BEGIN_SRC emacs-lisp
+  (use-package web-mode
+    :init
+    (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+    :config
+    (setq web-mode-engines-alist
+          '(("django" . "\\.html?\\'")
+            ("blade"  . "\\.blade\\.")))
+    (setq web-mode-markup-indent-offset 2)
+    (setq web-mode-enable-auto-pairing nil) ; conflicts with electric pair mode
+    (setq web-mode-enable-auto-closing t)
+    (setq web-mode-enable-auto-quoting t)
+    (setq web-mode-enable-auto-expanding t)
+    (add-hook 'web-mode-hook (lambda () (fci-mode 0))))
+#+END_SRC
+** C
+#+BEGIN_SRC emacs-lisp
+  (require 'semantic)
+  (set-default 'semantic-case-fold t)
+  (setq semantic-default-submodes '(global-semanticdb-minor-mode
+                                    global-semantic-idle-scheduler-mode))
+
+  (defun my-semantic-jump ()
+    (interactive)
+    (ring-insert find-tag-marker-ring (point-marker))
+    (semantic-ia-fast-jump (point)))
+
+  (defun my-c-setup ()
+    (semantic-mode 1)
+    (define-key c-mode-map (kbd "C-c C-d") 'semantic-ia-show-summary)
+    (define-key c-mode-map (kbd "M-.") 'my-semantic-jump)
+    (define-key c-mode-map (kbd "M-,") 'pop-tag-mark))
+
+  (add-hook 'c-mode-hook 'my-c-setup)
+#+END_SRC
+** Rust
+#+BEGIN_SRC emacs-lisp
+  (use-package rust-mode)
+  (use-package flycheck-rust
+    :init (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
+  (use-package racer
+    :init
+    (add-hook 'rust-mode-hook #'racer-mode)
+    (add-hook 'racer-mode-hook #'eldoc-mode))
+  (use-package cargo
+    :init (add-hook 'rust-mode-hook 'cargo-minor-mode))
+#+END_SRC
+** JavaScript
+#+BEGIN_SRC emacs-lisp
+  (use-package tern)
+  (use-package company-tern)
+  (use-package js2-mode
+    :init
+    (add-to-list 'auto-mode-alist '("\\.js\\'" . js2-mode))
+    :config
+    (setq js2-highlight-level 3)
+    (js2-imenu-extras-mode)
+    (add-hook 'js2-mode-hook (lambda () (tern-mode t)))
+    (eval-after-load 'company (progn '(add-to-list 'company-backends 'company-tern))))
+
+  (use-package json-mode
+    :init
+    (add-to-list 'auto-mode-alist '("\\.json\\'" . json-mode)))
+#+END_SRC
+** scheme
+*** mit/scheme
+#+BEGIN_SRC emacs-lisp
+  ;; (require 'xscheme)
+#+END_SRC
+*** geiser
+#+BEGIN_SRC emacs-lisp
+  (use-package geiser
+    :config
+    (setq geiser-default-implementation 'racket))
+#+END_SRC
+*** eval-to-comment
+#+BEGIN_SRC emacs-lisp
+  (fset 'eval-to-comment
+        (lambda (&optional arg) "Keyboard macro." (interactive "p") (kmacro-exec-ring-item (quote ([134217776 21 24 5 67108896 134217785 23 134217787 134217787 32 61 62 32 25] 0 "%d")) arg)))
+  (global-set-key (kbd "C-c <f6>") 'eval-to-comment)
+#+END_SRC
+** python
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'package-archives
+               '("elpy" . "https://jorgenschaefer.github.io/packages/"))
+  (use-package elpy
+    :pin elpy
+    :init (elpy-enable)
+    :config
+    (setq elpy-rpc-error-timeout 300)     ; less elpy crashing
+    (define-key elpy-mode-map (kbd "M-,") 'pop-tag-mark)
+    (setq flycheck-python-flake8-executable "/home/rahiel/.local/bin/flake8")
+    (setq flycheck-flake8rc "~/.config/flake8"))
+
+  (setq python-shell-interpreter "ipython3")
+#+END_SRC
+
+Don't reindent on ':'
+From: http://stackoverflow.com/a/27078898
+#+BEGIN_SRC emacs-lisp
+  (add-hook 'python-mode-hook
+            (lambda ()
+              (setq-local electric-indent-chars (remq ?: electric-indent-chars))))
+#+END_SRC
+
+** Golang
+#+BEGIN_SRC emacs-lisp
+  (use-package go-mode
+    :config
+    (add-hook 'before-save-hook 'gofmt-before-save))
+#+END_SRC
+** Octave mode
+Use octave-mode for matlab files.
+#+begin_src emacs-lisp
+  (setq auto-mode-alist
+        (cons '("\\.m$" . octave-mode) auto-mode-alist))
+  (add-hook 'octave-mode-hook
+            (lambda ()
+              (define-key octave-mode-map (kbd "C-c C-c") 'octave-send-buffer)
+              (define-key octave-mode-map (kbd "C-M-x") 'octave-send-defun)))
+#+end_src
+
+* org mode
+** general
+#+begin_src emacs-lisp
+  (global-set-key "\C-cl" 'org-store-link)
+  (global-set-key "\C-ca" 'org-agenda)
+  (global-set-key "\C-cb" 'org-iswitchb)
+  (setq org-completion-use-ido t)
+#+end_src
+** babel
+#+BEGIN_SRC emacs-lisp
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (scheme . t)
+     (python . t)))
+  (setq org-confirm-babel-evaluate nil)
+  (setq org-babel-python-command "python3")
+#+END_SRC
+
+** syntax highlighting
+In source blocks:
+#+BEGIN_SRC emacs-lisp
+  (setq org-src-fontify-natively t)
+#+END_SRC
+
+When exported with LaTeX:
+#+BEGIN_SRC emacs-lisp
+  (require 'ox-latex)
+  (setq org-latex-listings 'minted)
+  (add-to-list 'org-latex-packages-alist '("" "minted"))
+  ;; latex library in texlive-latex-extra, needs python-pygments
+#+END_SRC
+
+** unicode bullets
+#+BEGIN_SRC emacs-lisp
+  (use-package org-bullets
+    :config
+    (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1))))
+#+END_SRC
+
+* AUCTeX
+** general
+#+begin_src emacs-lisp
+  (use-package tex
+    :ensure auctex)
+  (setq TeX-auto-save t)
+  (setq TeX-parse-self t)
+  (setq TeX-save-query nil)
+  (setq TeX-PDF-mode t)
+#+end_src
+
+** latex-extra
+#+BEGIN_SRC emacs-lisp
+  (use-package latex-extra)
+  (add-hook 'LaTeX-mode-hook #'latex-extra-mode)
+#+END_SRC
+** bigger fill column
+#+begin_src emacs-lisp
+  (add-hook 'LaTeX-mode-hook
+            (lambda ()
+              (setq-default fill-column 100)))
+#+end_src
+** math mode
+Type ` plus another key to easily insert math symbols.
+#+begin_src emacs-lisp
+  (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
+#+end_src
